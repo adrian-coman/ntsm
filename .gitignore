@@ -19,7 +19,6 @@ ENV/
 # --- Security (CRITICAL) ---
 .pypirc
 .pypirc-config
-.readthedocs.yaml
 *.pem
 *.key
 
