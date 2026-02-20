@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ntsm*"]
+
+[project]
+name = "ntsm"
+description = "GIS Custom Modules package"
+readme = "README.rst"
+requires-python = ">=3.10"
+keywords = ["ntsm", "ntm", "nts"]
+license = { file = "LICENSE" }
+authors = [
+  { name = "Adrian Coman", email = "adrian.coman@nationaltrust.org.uk" },
+]
+
+dependencies = [
+  "cryptography>=41.0.0",
+  "msal>=1.20.0",
+  "requests>=2.28.0",
+  "loguru>=0.7.0",
+]
+
+dynamic = ["version"]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=5.0.0",
+  "sphinx-rtd-theme>=1.0.0",
+  "sphinx-autodoc-typehints>=1.0.0",
+  "nbsphinx>=0.8.0",
+  "rst2pdf>=0.90",
+  "ipython>=7.0.0",
+]
+dev = ["twine>=4.0.0", "pytest>=7.0.0"]
+
+classifiers = [
+  'Development Status :: 4 - Beta',
+  'Intended Audience :: Developers',
+  'License :: OSI Approved :: MIT License',
+  'Operating System :: OS Independent',
+  'Programming Language :: Python :: 3.10',
+  'Topic :: Software Development :: Build Tools',
+]
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[project.urls]
+Homepage = "https://github.com/adrian-coman/ntsm"
+Issues = "https://github.com/adrian-coman/ntsm/issues"
+Documentation = "https://ntsm.readthedocs.io/en/latest/"
+
+[project.scripts]
+ntsmdocs = "ntsm._docs:_read"

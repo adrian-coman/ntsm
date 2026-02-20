@@ -1,0 +1,145 @@
+/* Override nav bar color */
+/* .wy-side-nav-search {
+    background-color: #fbfbb6;
+}
+
+.wy-side-nav-search>a {
+    color: #b2355c
+}
+
+/* Override text bar color */
+/* .caption-text {
+    color: #b2355c;
+} */
+
+/* Override code signature colour */
+/* .rst-content dl:not(.docutils) dt {
+    background: #fbfbb6;
+    color: #b2355c;
+    border-top: solid 3px #b2355c;
+} */
+
+/* Override hyperlink colour */
+/* a {
+    color: #b2355c;
+} */
+*/
+
+/* Make content width wider*/
+.wy-nav-content {
+    max-width: 60% !important;
+}
+
+/* Make descname bold*/
+.sig-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: black;
+}
+
+/* Current page – stronger highlight */
+/* .wy-menu-vertical li.current > a {
+    background-color: #e8f0fe;     
+    color: #1e88e5 !important;
+    border-left: 4px solid #1e88e5;
+    font-weight: 600;
+} */
+
+
+
+
+
+/* Base menu container */
+.wy-menu-vertical {
+    font-size: 1.04em;
+    /* base ~16-17px, subtle increase over default */
+    line-height: 1.5;
+}
+
+/* All links - consistent base size */
+.wy-menu-vertical a {
+    font-size: 1.04em;
+    padding: 0.5em 1em;
+}
+
+/* Caption like "MODULES" - already bold by theme, we keep it prominent */
+.wy-menu-vertical .caption-text {
+    font-size: 1.12em !important;
+    font-weight: 700;
+    padding: 0.8em 1em 0.4em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Top-level items: modules like lib, conn, aeadencrypt */
+/* .wy-menu-vertical li.toctree-l1>a,
+.wy-menu-vertical li.toctree-l1>span.toctree-expand+a {
+    font-size: 1.04em !important;
+    font-weight: 600;
+    padding: 0.6em 1em;
+} */
+
+/* Second-level: classes like Archive, Args, DS – almost same as modules */
+/* .wy-menu-vertical li.toctree-l2>a,
+.wy-menu-vertical li.toctree-l2>span.toctree-expand+a {
+    font-size: 1.04em !important;
+    font-weight: 550;
+    padding-left: 2.0em !important;
+    color: #333;
+} */
+
+/* Keep third-level small & less dominant */
+/* .wy-menu-vertical li.toctree-l3>a,
+.wy-menu-vertical li.toctree-l3>span.toctree-expand+a {
+    font-size: 0.96em !important;
+    font-weight: 600 !important;
+    color: #555 !important;
+    padding-left: 3.2em !important;
+} */
+
+/* Current/active item highlight */
+.wy-menu-vertical li.current>a {
+    background-color: #f0f7ff;
+    color: #0066cc !important;
+    font-weight: 600;
+    border-left: 3px solid #0066cc;
+}
+
+
+/* Hover effect – helps when scanning */
+.wy-menu-vertical a:hover {
+    background-color: #f8f8f8;
+    color: #c2185b !important;
+}
+
+/* Force reasonable size for the sidebar logo */
+.wy-side-nav-search>a img.logo,
+.wy-side-nav-search .wy-dropdown>a img.logo {
+    width: 150px !important;
+    /* ← change this */
+    height: auto !important;
+    background: transparent;
+    /* optional */
+}
+
+/* Hide version/language selectors if still visible */
+div.version,
+div.language_selector,
+.wy-side-nav-search .version {
+    display: none !important;
+}
+
+/* Blockquotes */
+blockquote {
+    border-left: 4px solid #d9534f;
+    background-color: #fdf7f7;
+    padding: 0.5em 1em;
+    margin: 1em 0;
+}
+
+blockquote strong:first-child {
+    color: #a94442;
+    display: block;
+    font-size: 1.1em;
+    margin-bottom: 0.3em;
+}

@@ -1,0 +1,30 @@
+# --- Python Build & Distribution ---
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual Environments ---
+venv/
+ENV/
+.env
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- Security (CRITICAL) ---
+.pypirc
+.pypirc-config
+.readthedocs.yaml
+*.pem
+*.key
+
+# --- Project Specific ---
+.used/
+clone
+how_to.txt
+docs/build/
