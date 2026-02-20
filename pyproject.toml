@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["ntsm*"]
@@ -15,6 +11,15 @@ keywords = ["ntsm", "ntm", "nts"]
 license = { file = "LICENSE" }
 authors = [
   { name = "Adrian Coman", email = "adrian.coman@nationaltrust.org.uk" },
+]
+
+classifiers = [
+  'Development Status :: 4 - Beta',
+  'Intended Audience :: Developers',
+  'License :: OSI Approved :: MIT License',
+  'Operating System :: OS Independent',
+  'Programming Language :: Python :: 3.10',
+  'Topic :: Software Development :: Build Tools',
 ]
 
 dependencies = [
@@ -37,14 +42,6 @@ docs = [
 ]
 dev = ["twine>=4.0.0", "pytest>=7.0.0"]
 
-classifiers = [
-  'Development Status :: 4 - Beta',
-  'Intended Audience :: Developers',
-  'License :: OSI Approved :: MIT License',
-  'Operating System :: OS Independent',
-  'Programming Language :: Python :: 3.10',
-  'Topic :: Software Development :: Build Tools',
-]
 
 [tool.setuptools.dynamic]
 version = { file = "VERSION" }
@@ -56,3 +53,7 @@ Documentation = "https://ntsm.readthedocs.io/en/latest/"
 
 [project.scripts]
 ntsmdocs = "ntsm._docs:_read"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
