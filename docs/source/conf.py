@@ -40,7 +40,6 @@ extensions = [
     'nbsphinx',  # Integrate Jupyter Notebooks and Sphinx
     'IPython.sphinxext.ipython_console_highlighting',
     'sphinx_rtd_theme',
-    'rst2pdf.pdfbuilder',
     'sphinx_github_alerts'
 ]
 
@@ -87,20 +86,20 @@ pygments_style = 'sphinx'
 
 # Readthedocs theme
 # on_rtd is whether on readthedocs.org, this line of code grabbed from docs.readthedocs.org...
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    import sphinx_rtd_theme
+# on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+# if not on_rtd:  # only import and set the theme if we're building docs locally
+#     import sphinx_rtd_theme
 html_theme = "sphinx_rtd_theme"
 # Success: This variable is required for rst2pdf but avoid get_html_theme_path() deprecation
-html_theme_path = [os.path.abspath(os.path.dirname(sphinx_rtd_theme.__file__))]
+# html_theme_path = [os.path.abspath(os.path.dirname(sphinx_rtd_theme.__file__))]
 html_theme_options = {
     'collapse_navigation': True,
-    'version_selector': False,
-    'language_selector': False,
     'sticky_navigation': True,
     'navigation_depth': 3,
     'includehidden': True,
     'titles_only': False,
+    'version_selector': False,
+    'language_selector': False,
 }
 # html_logo = '_static/NTO_D_213_C.png'
 html_css_files = ["custom-readthedocs.css"] # Override some CSS settings
