@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <http://keepachangelog.com/>`_, 
 and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 
+
+0.1.5 (2026-02-23)
+------------------
+* Fixed: ``conn``.
+* Fixed: ``aeadencrypt.VaultCipher``.
+
+0.1.4 (2026-02-20)
+------------------
+* Fixed: docs.
+
 0.1.3 (2026-02-20)
 ------------------
 * Fixed: Sphinx docs build configuration — removed ``rst2pdf`` dependency, replaced with ``sphinx-github-alerts``.

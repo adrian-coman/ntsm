@@ -37,7 +37,7 @@ def vault(key_file: str = None, key_env: str = None) -> Any:
         An instance of VaultCipher.
     """
     from ntsm.aeadencrypt import VaultCipher
-    return VaultCipher(master_key=key_file, key_name=key_env)
+    return VaultCipher(key_path=key_file, key_name=key_env)
 
 
 def token(token: str, debug: bool = False) -> Any:

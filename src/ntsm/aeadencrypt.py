@@ -10,6 +10,7 @@
 # IMPORT MODULES
 # =====================================================================
 import base64
+import gc
 import os
 from typing import Optional, TYPE_CHECKING
 
@@ -462,7 +463,6 @@ class VaultCipher: # noqa: D301
 
 
     def _scrub_memory(self) -> None:
-        import gc
         if self._is_scrubbed:
             return
         for i in range(len(self._master_key)):
@@ -483,8 +483,11 @@ class VaultCipher: # noqa: D301
 
 
     def __del__(self):
-        if self.auto_scrub_on_exit:
-            self._scrub_memory()
+        try:
+            if getattr(self, "auto_scrub_on_exit", False):
+                self._scrub_memory()
+        except Exception:  # noqa: BLE001 — interpreter may be shutting down
+            pass
 
 
     def __repr__(self) -> str:
