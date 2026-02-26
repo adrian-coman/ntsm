@@ -127,5 +127,5 @@ Online documentation is hosted at `Read the Docs <https://ntsm.readthedocs.io/>`
 Contact & Support
 -----------------
 * **Author**: Adrian Coman
-* **Email**: adrian.coman@nationaltrust.org.uk
-* **Project Status**: Transition/Beta
+* **Email**: adrian.coman@proton.me
+* **Project Status**: Beta

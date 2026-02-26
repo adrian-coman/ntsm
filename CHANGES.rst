@@ -7,6 +7,11 @@ The format is based on `Keep a Changelog <http://keepachangelog.com/>`_,
 and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 
 
+0.1.6 (2026-02-26)
+------------------
+* Fixed: ``lib``.
+* Fixed: Updated ``email address``.
+
 0.1.5 (2026-02-23)
 ------------------
 * Fixed: ``conn``.

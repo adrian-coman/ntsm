@@ -9,9 +9,7 @@ readme = "README.rst"
 requires-python = ">=3.10"
 keywords = ["ntsm", "ntm", "nts"]
 license = { file = "LICENSE" }
-authors = [
-  { name = "Adrian Coman", email = "adrian.coman@nationaltrust.org.uk" },
-]
+authors = [{ name = "Adrian Coman", email = "adrian.coman@proton.me" }]
 
 classifiers = [
   'Development Status :: 4 - Beta',

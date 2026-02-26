@@ -328,9 +328,12 @@ def setup_logging(log_name: str, log_dir: str, level: Literal["INFO", "DEBUG", "
         USAGE EXAMPLE:
 
         from ntsm.lib import setup_logging
+        from pathlib import Path 
         
         # Setup a specific log for a worker
-        Log = setup_logging("route_processor", "./logs", level="DEBUG")
+        log_name = Path(__file__).stem
+        log_path = Path(__wks__) / 'log' 
+        Log = setup_logging(log_name, log_path, level="DEBUG")
         
         Log.info("Logger initialized and ready.")
         Log.debug("Deep diagnostic info is captured here.")  
@@ -1040,8 +1043,8 @@ class Files: # noqa: D301
     **Method**                           **Description**
     -----------------------------------  ----------------------------------------------------------------------
     :meth:`.copy_dir`                    Syncs directories with resume logic and size-based verification.
-    :meth:`.rem_files_adv`               Purges files based on age, extension, and recursion.
-    :meth:`.files_path_as_list_adv`      Generates filtered lists of absolute file paths.
+    :meth:`.rem_files`                   Purges files based on age, extension, and recursion.
+    :meth:`.files_path_as_list`          Generates filtered lists of absolute file paths.
     :meth:`.rem_files_from_list`         Iterates and deletes a provided list of file paths.
     :meth:`.write_to_file`               Saves a string to a file, ensuring parent directories exist.
     :meth:`.append_to_file`              Appends text content to the end of an existing file.
@@ -1062,7 +1065,7 @@ class Files: # noqa: D301
         dest = Files.copy_dir("C:/Data/Project.gdb", "D:/Backups")
 
         # 2. Cleanup old logs (Older than 30 days, specific extensions)
-        Files.rem_files_adv("C:/Logs", max_days=30, file_exts=['log', 'tmp'], recursive=True)
+        Files.rem_files("C:/Logs", max_days=30, file_exts=['log', 'tmp'], recursive=True)
 
         # 3. Safe removal of a scratch directory
         Files.erase_if_exists("C:/Temp/scratch_workspace", retries=5)
@@ -1070,7 +1073,7 @@ class Files: # noqa: D301
     """
 
     @staticmethod
-    def rem_files_adv(dir_path: str, max_days: int = 0, file_exts: Optional[List[str]] = None, recursive: bool = False) -> None:
+    def rem_files(dir_path: str, max_days: int = 0, file_exts: Optional[List[str]] = None, recursive: bool = False) -> None:
         """Remove files from a directory with advanced filtering.
 
         Manages storage by purging old files. Can target specific file extensions
@@ -1134,7 +1137,7 @@ class Files: # noqa: D301
                     print(f"Permission denied or error deleting {file_path}: {e}")
 
     @staticmethod
-    def files_path_as_list_adv(dir_path: str, file_exts: Optional[List[str]] = None, recursive: bool = False) -> List[str]:
+    def files_path_as_list(dir_path: str, file_exts: Optional[List[str]] = None, recursive: bool = False) -> List[str]:
         """Generate a list of full file paths from a directory with advanced filtering.
 
         Scans a directory and returns a list of paths, optionally filtering
@@ -1153,7 +1156,7 @@ class Files: # noqa: D301
             from ntsm.lib import Files
             
             # Get all PDF and DOCX files in a folder
-            my_files = Files.get_file_list("C:/Docs", file_exts=['pdf', 'docx'])
+            my_files = Files.files_path_as_list("C:/Docs", file_exts=['pdf', 'docx'])
 
         Returns:
             A list of absolute file paths as strings.
@@ -1201,8 +1204,8 @@ class Files: # noqa: D301
             from ntsm.lib import Files
             
             # Get and then delete a list of temp files
-            tmp_files = Files.files_path_as_list_adv("./temp", file_exts=['tmp'])
-            Files.delete_files_from_list(tmp_files)
+            tmp_files = Files.files_path_as_list("./temp", file_exts=['tmp'])
+            Files.rem_files_from_list(file_paths=tmp_files)
 
         Raises:
             OSError: If a file cannot be deleted due to system permissions.
