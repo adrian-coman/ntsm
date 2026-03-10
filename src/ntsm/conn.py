@@ -85,6 +85,13 @@ def agol(url: str, user: str, password: str, debug: bool = False) -> Any:
         password (str): The user password.
         debug (bool): If ``True``, prints connection status. Defaults to ``False``.
 
+    .. caution::
+       **SECURITY WARNING**: This method currently disables SSL certificate verification 
+       (``verify_cert=False``) by default. This makes the connection vulnerable to 
+       Man-in-the-Middle (MitM) attacks. Please ensure you are connecting over a 
+       trusted network or manually provide a certificate bundle in your own implementation 
+       if higher security is required.
+
     .. code-block:: python
 
         from ntsm.conn import agol
@@ -183,7 +190,7 @@ def hbsmr(url: str, user: str, password: str, debug: bool = False) -> Any:
         creds = base64.b64encode(f"{user}:{password}".encode()).decode()
         headers = {"Authorization": f"Basic {creds}"}
         
-        resp = requests.get(url, headers=headers, allow_redirects=True)
+        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=30)
         if resp:
             if debug: print("HBSMR API in use.")
             return resp

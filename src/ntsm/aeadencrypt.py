@@ -166,7 +166,9 @@ class VaultUtils: # noqa: D301
 
         .. caution::
            **SECURITY WARNING**: This method uses MD5 for key derivation and a Zero IV.
-           It is intended for legacy compatibility only and is **NOT** as secure as VaultCipher.
+           It is intended for **legacy compatibility only** and is **NOT** as secure as VaultCipher.
+           Users are strongly advised to migrate to ``VaultCipher`` for modern applications.
+           This method is scheduled to be **deprecated in version 0.2.0** of the package.
 
         .. code-block:: python
 
@@ -191,7 +193,7 @@ class VaultUtils: # noqa: D301
             )
         try:
             if len(secret_key) != 16:
-                key = hashlib.md5(secret_key.encode('utf-8')).digest()
+                key = hashlib.md5(secret_key.encode('utf-8')).digest()  # nosec B324
             else:
                 key = secret_key.encode('utf-8')
 
@@ -220,7 +222,9 @@ class VaultUtils: # noqa: D301
 
         .. caution::
            **SECURITY WARNING**: This method uses MD5 for key derivation and a Zero IV.
-           It is intended for legacy compatibility only and is **NOT** as secure as VaultCipher.
+           It is intended for **legacy compatibility only** and is **NOT** as secure as VaultCipher.
+           Users are strongly advised to migrate to ``VaultCipher`` for modern applications.
+           This method is scheduled to be **deprecated in version 0.2.0** of the package.
 
         .. code-block:: python
 
@@ -239,7 +243,7 @@ class VaultUtils: # noqa: D301
         from cryptography.hazmat.primitives import padding
         try:
             if len(secret_key) != 16:
-                key = hashlib.md5(secret_key.encode('utf-8')).digest()
+                key = hashlib.md5(secret_key.encode('utf-8')).digest()  # nosec B324
             else:
                 key = secret_key.encode('utf-8')
 
@@ -486,7 +490,7 @@ class VaultCipher: # noqa: D301
         try:
             if getattr(self, "auto_scrub_on_exit", False):
                 self._scrub_memory()
-        except Exception:  # noqa: BLE001 — interpreter may be shutting down
+        except Exception:  # nosec B110 # noqa: BLE001 — interpreter may be shutting down
             pass
 
 
@@ -660,10 +664,11 @@ class VaultCipher: # noqa: D301
 
 
     def encrypt_file(self, input_path: str, output_path: str, tags: Optional[bytes] = None) -> None:
-        """Encrypt a local file using AES-256-GCM authenticated encryption.
+        """Encrypt a local file using AES-256-GCM authenticated encryption (Streaming).
 
-        Standard file encryption flow. Enforces a 512 MiB size limit to prevent
-        memory exhaustion. The output file contains the salt, nonce, and ciphertext.
+        Uses chunked processing (64 KiB) to maintain constant memory usage regardless 
+        of file size. The output file format is identical to previous non-streaming 
+        versions: [salt][nonce][ciphertext][tag].
 
         Args:
             input_path (str): Path to the original unencrypted file.
@@ -687,23 +692,54 @@ class VaultCipher: # noqa: D301
         if os.path.getsize(input_path) > self.FILE_SIZE_LIMIT:
             raise ValueError(f"File too large (> {self.FILE_SIZE_LIMIT // (1024**2)} MiB).")
 
-        with open(input_path, "rb") as f:
-            data = f.read()
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
         salt = os.urandom(self.SALT_SIZE)
         nonce = os.urandom(self.NONCE_SIZE)
-        aes = self._derive_aes(salt)
-        ct = aes.encrypt(nonce, data, tags)
+        
+        # We reuse _derive_aes logic but extract the raw key for Cipher API
+        # Note: _derive_aes returns AESGCM object, we need raw key for streaming
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+        
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA512(),
+            length=self.ALG_LENGTH,
+            salt=salt,
+            iterations=self.KDF_ITERATIONS,
+        )
+        key = kdf.derive(bytes(self._master_key))
+        
+        encryptor = Cipher(
+            algorithms.AES(key),
+            modes.GCM(nonce),
+        ).encryptor()
 
-        with open(output_path, "wb") as f:
-            f.write(salt + nonce + ct)
+        # Add associated data (tags)
+        if tags:
+            encryptor.authenticate_additional_data(tags)
+
+        chunk_size = 64 * 1024 # 64 KiB
+        with open(input_path, "rb") as f_in, open(output_path, "wb") as f_out:
+            # Reserve space for salt + nonce
+            f_out.write(salt + nonce)
+            
+            while True:
+                chunk = f_in.read(chunk_size)
+                if not chunk:
+                    break
+                f_out.write(encryptor.update(chunk))
+            
+            encryptor.finalize()
+            # Write authentication tag at the end
+            f_out.write(encryptor.tag)
 
 
     def decrypt_file(self, input_path: str, output_path: str, tags: Optional[bytes] = None) -> None:
-        """Decrypt an encrypted file back to its original state.
+        """Decrypt an encrypted file back to its original state (Streaming).
 
-        Validates the integrity of the file using the authentication tag and the
-        provided Associated Data (tags).
+        Uses chunked processing to maintain constant memory usage. Validates 
+        integrity using the GCM authentication tag stored at the end of the file.
 
         Args:
             input_path (str): Path to the encrypted file.
@@ -724,20 +760,59 @@ class VaultCipher: # noqa: D301
         if not os.path.isfile(input_path):
             raise FileNotFoundError(input_path)
 
-        with open(input_path, "rb") as f:
-            blob = f.read()
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+        file_size = os.path.getsize(input_path)
         min_len = self.SALT_SIZE + self.NONCE_SIZE + self.TAG_SIZE
-        if len(blob) < min_len:
+        
+        if file_size < min_len:
             raise ValueError(f"File too short to be valid encrypted text (need ≥ {min_len} bytes)")
 
-        salt = blob[:self.SALT_SIZE]
-        nonce = blob[self.SALT_SIZE : self.SALT_SIZE + self.NONCE_SIZE]
-        ct_tag = blob[self.SALT_SIZE + self.NONCE_SIZE :]
-        aes = self._derive_aes(salt)
-        plaintext = aes.decrypt(nonce, ct_tag, tags)
+        chunk_size = 64 * 1024 # 64 KiB
+        
+        with open(input_path, "rb") as f_in:
+            salt = f_in.read(self.SALT_SIZE)
+            nonce = f_in.read(self.NONCE_SIZE)
+            
+            # Read tag from the end of the file
+            f_in.seek(-self.TAG_SIZE, os.SEEK_END)
+            tag = f_in.read(self.TAG_SIZE)
+            
+            # Reset pointer to start of ciphertext
+            f_in.seek(self.SALT_SIZE + self.NONCE_SIZE)
+            
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA512(),
+                length=self.ALG_LENGTH,
+                salt=salt,
+                iterations=self.KDF_ITERATIONS,
+            )
+            key = kdf.derive(bytes(self._master_key))
+            
+            decryptor = Cipher(
+                algorithms.AES(key),
+                modes.GCM(nonce, tag),
+            ).decryptor()
 
-        with open(output_path, "wb") as f:
-            f.write(plaintext)
+            if tags:
+                decryptor.authenticate_additional_data(tags)
+
+            # Ciphertext length is total size - salt - nonce - tag
+            ct_len = file_size - self.SALT_SIZE - self.NONCE_SIZE - self.TAG_SIZE
+            bytes_read = 0
+            
+            with open(output_path, "wb") as f_out:
+                while bytes_read < ct_len:
+                    to_read = min(chunk_size, ct_len - bytes_read)
+                    chunk = f_in.read(to_read)
+                    if not chunk:
+                        break
+                    f_out.write(decryptor.update(chunk))
+                    bytes_read += len(chunk)
+                
+                # finalize will raise InvalidTag if integrity check fails
+                f_out.write(decryptor.finalize())
 
 

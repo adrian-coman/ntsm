@@ -141,10 +141,16 @@ def send_url_request(request: Any)-> Any:
     Returns:
         The parsed JSON data from the server response.
     """
+    import urllib.request
+    from urllib.parse import urlparse
 
-    import urllib
-    
-    response = urllib.request.urlopen(request)
+    # --- Security: URL Validation ---
+    target_url = request.full_url if hasattr(request, 'full_url') else str(request)
+    parsed = urlparse(target_url)
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError(f"Insecure or invalid URL scheme: {parsed.scheme}. Only HTTP/HTTPS is allowed.")
+
+    response = urllib.request.urlopen(request)  # nosec B310
     readResponse = response.read()
     jsonResponse = json.loads(readResponse)
     return jsonResponse
@@ -178,13 +184,28 @@ async def download(url: str, filename: str) -> None:
     Returns:
         None
     """
+    from urllib.parse import urlparse
+    import os
+
+    # --- Security: URL Validation ---
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError(f"Insecure or invalid URL scheme: {parsed.scheme}. Only HTTP/HTTPS is allowed.")
+
+    # --- Security: Path Sanitization ---
+    # Ensure the filename is strictly a basename to prevent Path Traversal
+    if filename != os.path.basename(filename):
+        raise ValueError(f"Path traversal attempt detected in filename: {filename}. Only simple filenames are allowed.")
+    
+    safe_filename = filename
+
     try:
         # --- 1. Browser Approach (Pyodide) ---
         from pyodide.http import pyfetch
         
         response = await pyfetch(url)
         if response.status == 200:
-            with open(filename, "wb") as f:
+            with open(safe_filename, "wb") as f:
                 f.write(await response.bytes())
         else:
             raise RuntimeWarning(f"Download failed: Status {response.status}")
@@ -196,8 +217,8 @@ async def download(url: str, filename: str) -> None:
 
         # We use run_in_executor so the sync urllib call doesn't freeze the async loop
         def sync_download():
-            with urllib.request.urlopen(url) as response:
-                with open(filename, "wb") as f:
+            with urllib.request.urlopen(url) as response:  # nosec B310
+                with open(safe_filename, "wb") as f:
                     f.write(response.read())
 
         loop = asyncio.get_event_loop()
@@ -1017,7 +1038,7 @@ class EmailMsal: # noqa: D301
                 "Content-Type": "application/json"
             }
             
-            response = requests.post(endpoint, json=email_data, headers=headers)
+            response = requests.post(endpoint, json=email_data, headers=headers, timeout=30)
             
             if response.status_code == 202:
                 return True
@@ -1913,6 +1934,14 @@ class Archive: # noqa: D301
     
     
     @staticmethod
+    def _is_safe_path(base: Path, target: Path) -> bool:
+        """Verify that a target path is securely contained within the base directory."""
+        # We use resolve() to handle '..' and symlinks
+        base_abs = base.resolve()
+        target_abs = target.resolve()
+        return os.path.commonpath([base_abs, target_abs]) == str(base_abs)
+
+    @staticmethod
     def un_zip(zip_path: str, unzip_path: str = None, password: str = None, debug: bool = False) -> str:
         """Extract a ZIP archive to a specified directory with optional password support.
 
@@ -1968,23 +1997,24 @@ class Archive: # noqa: D301
 
         # 2. Extract Logic
         try:
-            if password:
-                # Use pyzipper for AES-protected ZIPs
-                with pyzipper.AESZipFile(zip_path, 'r') as arch:
+            handler = pyzipper.AESZipFile(zip_path, 'r') if password else zipfile.ZipFile(zip_path, 'r')
+            with handler as arch:
+                if password:
                     arch.setpassword(password.encode('utf-8'))
-                    arch.extractall(path=target_dir)
-            else:
-                # Standard zipfile for non-protected ZIPs
-                with zipfile.ZipFile(zip_path, 'r') as arch:
-                    arch.extractall(path=target_dir)
+                
+                # --- Security: Zip Slip Protection ---
+                for member in arch.infolist():
+                    member_path = (target_dir / member.filename).absolute()
+                    if not Archive._is_safe_path(target_dir, member_path):
+                        raise ValueError(f"Malicious ZIP member detected (Path Traversal): {member.filename}")
+                
+                arch.extractall(path=target_dir)
                 
             if debug:
                 print(f"Successfully extracted to: {target_dir}")
                 
-        except RuntimeError as e:
-            if "password" in str(e).lower():
-                raise RuntimeError(f"Failed to extract {zip_file.name}: Incorrect or missing password.")
-            raise e
+        except (RuntimeError, ValueError):
+            raise
         except Exception as e:
             raise OSError(f"Failed to unzip {zip_path}: {e}")
 

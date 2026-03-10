@@ -16,6 +16,21 @@ NTSM can be installed directly from PyPI or from the local repository.
     # Local development installation
     pip install -e .
 
+Using uv (Recommended)
+~~~~~~~~~~~~~~~~~~~~~~
+``uv`` is a high-performance Python package manager. It is significantly faster for installing large dependencies like ``arcgis``.
+
+.. code-block:: bash
+
+    # Local development installation
+    uv pip install -e .
+
+    # Add as a dependency to your project
+    uv add ntsm
+
+    # Run ntsmdocs without manual environment activation
+    uv run ntsmdocs
+
 Package Dependencies
 ~~~~~~~~~~~~~~~~~~~~
 NTSM relies on the following core libraries:

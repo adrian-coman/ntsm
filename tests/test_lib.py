@@ -7,12 +7,12 @@ from pathlib import Path
 from datetime import datetime
 from types import SimpleNamespace
 
-# Add current directory to path for imports
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add local src directory to path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from ntsm.lib import FormatTime, dict_to_ns, Files, Archive
 
-class TestLib(unittest.TestCase):
+class TestLib(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.test_dir)
@@ -60,7 +60,7 @@ class TestLib(unittest.TestCase):
         password = "secret_password"
         
         # Test ZIP creation (AES)
-        zip_path = Archive.create_zip(
+        zip_path = Archive.make_zip(
             source=src_file,
             dest_path=self.test_dir,
             archive_name=zip_name,
@@ -81,6 +81,47 @@ class TestLib(unittest.TestCase):
         self.assertTrue(os.path.exists(restored_file))
         with open(restored_file, 'r') as f:
             self.assertEqual(f.read(), "sensitive data")
+
+    async def test_url_validation(self):
+        from ntsm.lib import send_url_request, download
+        
+        # Test send_url_request with invalid scheme
+        with self.assertRaises(ValueError):
+            send_url_request("file:///etc/passwd")
+        
+        # Test download with invalid scheme
+        with self.assertRaises(ValueError):
+            await download("file:///etc/passwd", "test.txt")
+
+    async def test_download_sanitization(self):
+        from ntsm.lib import download
+        
+        # Test path traversal in filename
+        with self.assertRaises(ValueError):
+            await download("https://example.com", "/tmp/malicious.txt")
+        
+        with self.assertRaises(ValueError):
+            await download("https://example.com", "../malicious.txt")
+
+    def test_zip_slip_protection(self):
+        import zipfile
+        import io
+        
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as arch:
+            # Create a malicious entry attempting path traversal
+            arch.writestr("../../../evil.txt", "evil content")
+        
+        zip_path = os.path.join(self.test_dir, "slip.zip")
+        with open(zip_path, "wb") as f:
+            f.write(zip_buffer.getvalue())
+            
+        unzip_dir = os.path.join(self.test_dir, "extracted_safe")
+        
+        with self.assertRaises(ValueError) as cm:
+            Archive.un_zip(zip_path, unzip_dir)
+        
+        self.assertIn("Malicious ZIP member detected", str(cm.exception))
 
 if __name__ == '__main__':
     unittest.main()

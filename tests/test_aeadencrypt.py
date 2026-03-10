@@ -5,8 +5,8 @@ import base64
 import shutil
 import tempfile
 
-# Ensure the parent directory is in sys.path so we can import 'ntsm'
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Ensure the local src directory is in sys.path so we can import 'ntsm'
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
 
 from ntsm.aeadencrypt import VaultCipher, VaultUtils
 
