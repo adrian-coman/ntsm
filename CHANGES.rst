@@ -7,6 +7,12 @@ The format is based on `Keep a Changelog <http://keepachangelog.com/>`_,
 and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 
 
+0.1.9 (2026-05-06)
+------------------
+* Removed: ``sphinx-github-alerts`` dependency from documentation and build configuration.
+* Fixed: Converted Markdown-style download badge in ``README.rst`` to proper reStructuredText (RST) syntax.
+* Fixed: Cleaned up Sphinx configuration (``conf.py``) by removing the obsolete GitHub alerts extension.
+
 0.1.8 (2026-05-06)
 ------------------
 * Added: Detailed documentation and usage examples for ``LazyAttrDict`` class and its methods.

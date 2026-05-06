@@ -18,12 +18,13 @@ NTSM - Vault & Utilities
     :target: https://opensource.org/licenses/MIT
     :alt: License: MIT
 
+.. image:: https://static.pepy.tech/personalized-badge/ntsm?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads
+    :target: https://pepy.tech/projects/ntsm
+    :alt: PyPI Downloads
+
 .. image:: https://img.shields.io/badge/status-beta-orange.svg
     :target: https://pypi.org/project/ntsm/
     :alt: Project Status: Beta
-
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/ntsm?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/ntsm)
-
 
 
 The **NTSM** package serves as a central hub for GIS teams, providing a consistent and secure method for managing sensitive credentials across various platforms. Its primary objective is to eliminate hardcoded secrets and unify the connectivity patterns for frequently used APIs like ArcGIS Online or MSAL. 
