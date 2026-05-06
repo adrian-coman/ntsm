@@ -7,6 +7,12 @@ The format is based on `Keep a Changelog <http://keepachangelog.com/>`_,
 and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 
 
+0.1.10 (2026-05-06)
+-------------------
+* Fixed: Restored ``sphinx-github-alerts`` dependency to fix broken Read the Docs build.
+* Fixed: Removed problematic Pepy download badge that failed to render on Read the Docs.
+* Fixed: Cleaned up Sphinx configuration (``conf.py``) formatting.
+
 0.1.9 (2026-05-06)
 ------------------
 * Removed: ``sphinx-github-alerts`` dependency from documentation and build configuration.
