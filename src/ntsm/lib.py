@@ -15,7 +15,8 @@ import json
 import time
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Callable, Any, Literal, Union, List, Optional
+from typing import Callable, Any, Literal, Union, List, Optional, Dict, Iterable, Generator, Tuple
+import copy
 
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     'truncate_decimals',
     'dict_to_ns',
     'setup_logging',
+    'LazyAttrDict',
     'FormatTime',
     'Email',
     'EmailMsal',
@@ -410,6 +412,147 @@ def setup_logging(log_name: str, log_dir: str, level: Literal["INFO", "DEBUG", "
     
     logger.info(f"--- Session Started: {log_name} ---")
     return logger
+
+
+class LazyAttrDict: # noqa: D301
+    """A high-performance, lazy-evaluating dictionary wrapper.
+
+    Provides attribute-style access (dot notation) to dictionary keys, 
+    with nested dictionaries and lists recursively wrapped on-demand. 
+    Results are cached to ensure maximum performance on subsequent lookups.
+
+    **Summary of Methods**
+
+    =========================   ========================================================================
+    **Method**                  **Description**
+    -------------------------   ------------------------------------------------------------------------
+    :meth:`.get`                Retrieves a value with an optional default if the key is missing.
+    :meth:`.keys`               Returns an iterable of the underlying dictionary keys.
+    :meth:`.values`             Generates lazily-wrapped values for all keys.
+    :meth:`.items`              Generates key-value pairs where values are lazily wrapped.
+    :meth:`.to_dict`            Returns the raw underlying dictionary.
+    :meth:`.copy`               Creates a deep copy of the wrapper and its data.
+    =========================   ========================================================================
+
+    Args:
+        data (Dict[str, Any], optional): The initial dictionary to wrap. 
+            Defaults to an empty dict.
+
+    .. code-block:: python
+
+        USAGE EXAMPLE:
+
+        from ntsm.lib import LazyAttrDict
+        
+        config = {
+            "api": {"key": "secret", "timeout": 30},
+            "servers": ["prod", "dev"]
+        }
+        
+        lazy = LazyAttrDict(config)
+        
+        # Attribute access
+        print(lazy.api.key)      # Output: 'secret'
+        
+        # Indexed access
+        print(lazy["api"]["timeout"])  # Output: 30
+        
+        # Nested wrapping in lists
+        print(lazy.servers[0])   # Output: 'prod'
+    """
+    __slots__ = ('_data', '_cache')
+
+    def __init__(self, data: Optional[Dict[str, Any]] = None) -> None:
+        """Initialize the lazy dictionary and its internal cache.
+
+        Args:
+            data (Dict[str, Any], optional): The dictionary to wrap.
+        """
+        self._data = data if data is not None else {}
+        self._cache: Dict[str, Any] = {}
+
+    def _ensure_lazy(self, val: Any) -> Any:
+        """Recursively ensure that nested collections are wrapped in LazyAttrDict.
+
+        Args:
+            val (Any): The value to wrap if it's a dict or collection.
+
+        Returns:
+            The wrapped value or the original value.
+        """
+        if isinstance(val, dict):
+            return LazyAttrDict(val)
+        if isinstance(val, (list, tuple)):
+            return [self._ensure_lazy(item) for item in val]
+        return val
+
+    def __getattr__(self, key: str) -> Any:
+        """Retrieve a key as an attribute, applying lazy wrapping and caching.
+
+        Args:
+            key (str): The key name to retrieve.
+
+        Returns:
+            The (lazily wrapped) value associated with the key.
+
+        Raises:
+            AttributeError: If the key does not exist in the underlying dictionary.
+        """
+        if key in self._cache:
+            return self._cache[key]
+        if key in self._data:
+            transformed = self._ensure_lazy(self._data[key])
+            self._cache[key] = transformed
+            return transformed
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+
+    def __getitem__(self, key: str) -> Any:
+        """Enable standard dictionary indexed access via __getattr__ logic."""
+        return self.__getattr__(key)
+
+    def __contains__(self, key: str) -> bool:
+        """Check if a key exists in the underlying data."""
+        return key in self._data
+
+    def get(self, key: str, default: Optional[Any] = None) -> Any:
+        """Safely retrieve a value by key with a fallback default.
+
+        Args:
+            key (str): The key to look up.
+            default (Any, optional): Value to return if key is missing.
+
+        Returns:
+            The value or the default.
+        """
+        return self.__getattr__(key) if key in self._data else default
+
+    def keys(self) -> Iterable[str]:
+        """Return the keys of the underlying dictionary."""
+        return self._data.keys()
+
+    def values(self) -> Generator[Any, None, None]:
+        """Generate lazily-wrapped values for all keys in the dictionary."""
+        return (self.__getattr__(k) for k in self._data.keys())
+
+    def items(self) -> Generator[Tuple[str, Any], None, None]:
+        """Generate (key, wrapped_value) pairs for the dictionary."""
+        return ((k, self.__getattr__(k)) for k in self._data.keys())
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return the raw, unwrapped dictionary data."""
+        return self._data
+
+    def copy(self) -> 'LazyAttrDict':
+        """Create a deep copy of the LazyAttrDict.
+
+        Returns:
+            A new LazyAttrDict instance with copied data.
+        """
+        return self.__class__(copy.deepcopy(self._data))
+
+    def __repr__(self) -> str:
+        """Return a string representation of the LazyAttrDict showing its keys."""
+        return f"LazyAttrDict({list(self._data.keys())})"
 
 
 class FormatTime: # noqa: D301

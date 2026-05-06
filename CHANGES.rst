@@ -7,6 +7,12 @@ The format is based on `Keep a Changelog <http://keepachangelog.com/>`_,
 and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 
 
+0.1.8 (2026-05-06)
+------------------
+* Added: Detailed documentation and usage examples for ``LazyAttrDict`` class and its methods.
+* Added: Public export of ``LazyAttrDict`` in ``lib.__all__``.
+* Fixed: Missing type hint imports (``Dict``, ``Iterable``, ``Generator``, ``Tuple``) and ``copy`` module in ``lib``.
+
 0.1.7 (2026-03-10)
 ------------------
 * Added: Security validation for URL schemes in ``lib.send_url_request`` and ``lib.download`` (restricted to HTTP/HTTPS).
