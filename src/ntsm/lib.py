@@ -29,6 +29,7 @@ __all__ = [
     'dict_to_ns',
     'setup_logging',
     'LazyAttrDict',
+    'LazyNodes',
     'FormatTime',
     'Email',
     'EmailMsal',
@@ -410,8 +411,217 @@ def setup_logging(log_name: str, log_dir: str, level: Literal["INFO", "DEBUG", "
     logger.remove()
     logger.add(**log_config)
     
-    logger.info(f"--- Session Started: {log_name} ---")
     return logger
+
+
+class LazyListProxy:
+    """A list-like proxy that lazily wraps elements upon access.
+
+    Wraps a raw list and applies a transformation function to each element 
+    only when it is retrieved. Once transformed, the result is cached for 
+    subsequent access to ensure optimal performance.
+
+    **Summary of Methods**
+
+    =========================   ========================================================================
+    **Method**                  **Description**
+    -------------------------   ------------------------------------------------------------------------
+    :meth:`.__getitem__`        Retrieves a transformed item by index or slice.
+    :meth:`.__len__`            Returns the total number of items in the underlying list.
+    :meth:`.__iter__`           Yields lazily-wrapped items from the list sequentially.
+    =========================   ========================================================================
+
+    Args:
+        raw_list (List[Any]): The original list containing data to be wrapped.
+        wrapper_func (Callable[[Any], Any]): The function used to transform list items.
+    """
+    __slots__ = ('_raw_list', '_wrapper_func', '_cache')
+
+    def __init__(self, raw_list: List[Any], wrapper_func: Callable[[Any], Any]) -> None:
+        """Initialize the lazy list proxy.
+
+        Args:
+            raw_list (List[Any]): The data source.
+            wrapper_func (Callable): Transformation logic for items.
+        """
+        self._raw_list = raw_list
+        self._wrapper_func = wrapper_func
+        # Cache individual items once transformed
+        self._cache: Dict[int, Any] = {}
+
+    def __getitem__(self, index: Union[int, slice]) -> Any:
+        """Retrieve an item or slice from the list, applying lazy wrapping.
+
+        Args:
+            index (int | slice): The index or range to retrieve.
+
+        Returns:
+            The wrapped item(s).
+        """
+        # Handle slicing (e.g., my_list[0:5])
+        if isinstance(index, slice):
+            return [self.__getitem__(i) for i in range(*index.indices(len(self._raw_list)))]
+        
+        # Handle negative indexing
+        if index < 0:
+            index += len(self._raw_list)
+
+        if index in self._cache:
+            return self._cache[index]
+
+        # Only wrap the specific item requested
+        item = self._wrapper_func(self._raw_list[index])
+        self._cache[index] = item
+        return item
+
+    def __len__(self) -> int:
+        """Return the length of the underlying list."""
+        return len(self._raw_list)
+
+    def __iter__(self) -> Generator[Any, None, None]:
+        """Iterate through the list, yielding wrapped items one by one."""
+        for i in range(len(self._raw_list)):
+            yield self[i]
+
+    def __repr__(self) -> str:
+        """Return a string representation showing the proxy length."""
+        return f"LazyListProxy(length={len(self._raw_list)})"
+
+
+class LazyNodes: # noqa: D301
+    """A high-performance, truly lazy dictionary and list wrapper.
+
+    Provides attribute-style access to dictionary keys and lazy wrapping for 
+    both nested dictionaries and lists. Unlike standard wrappers, list elements 
+    are only transformed when specifically accessed, minimizing overhead for 
+    large datasets.
+
+    **Summary of Methods**
+
+    =========================   ========================================================================
+    **Method**                  **Description**
+    -------------------------   ------------------------------------------------------------------------
+    :meth:`.get`                Retrieves a value with an optional default if the key is missing.
+    :meth:`.keys`               Returns an iterable of the underlying dictionary keys.
+    :meth:`.values`             Generates lazily-wrapped values for all keys.
+    :meth:`.items`              Generates key-value pairs where values are lazily wrapped.
+    :meth:`.to_dict`            Returns the raw underlying dictionary.
+    =========================   ========================================================================
+
+    Args:
+        data (Dict[str, Any], optional): The initial dictionary to wrap. 
+            Defaults to an empty dict.
+
+    .. code-block:: python
+
+        USAGE EXAMPLE:
+
+        from ntsm.lib import LazyNodes
+        
+        data = {
+            "metadata": {"version": 1.0},
+            "records": [{"id": 1, "val": "A"}, {"id": 2, "val": "B"}]
+        }
+        
+        nodes = LazyNodes(data)
+        
+        # Attribute access
+        print(nodes.metadata.version)  # Output: 1.0
+        
+        # Lazy list access (records[1] is only wrapped when accessed)
+        print(nodes.records[1].val)    # Output: 'B'
+    """
+    __slots__ = ('_data', '_cache')
+
+    def __init__(self, data: Optional[Dict[str, Any]] = None) -> None:
+        """Initialize the lazy nodes wrapper.
+
+        Args:
+            data (Dict[str, Any], optional): The dictionary to wrap.
+        """
+        self._data = data if data is not None else {}
+        self._cache: Dict[str, Any] = {}
+
+    def _ensure_lazy(self, val: Any) -> Any:
+        """Recursively ensure that nested collections are wrapped lazily.
+
+        Args:
+            val (Any): The value to wrap (dict or list).
+
+        Returns:
+            A LazyNodes instance for dicts, a LazyListProxy for lists, or the raw value.
+        """
+        if isinstance(val, dict):
+            return LazyNodes(val)
+        if isinstance(val, list):
+            # Instead of a list comprehension, we return the Proxy!
+            return LazyListProxy(val, self._ensure_lazy)
+        return val
+
+    def __getattr__(self, key: str) -> Any:
+        """Retrieve a key as an attribute, applying lazy wrapping and caching.
+
+        Args:
+            key (str): The key name to retrieve.
+
+        Returns:
+            The (lazily wrapped) value associated with the key.
+
+        Raises:
+            AttributeError: If the key does not exist.
+        """
+        if key in self._cache:
+            return self._cache[key]
+
+        if key in self._data:
+            transformed = self._ensure_lazy(self._data[key])
+            self._cache[key] = transformed
+            return transformed
+        
+        raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{key}'")
+
+    def __getitem__(self, key: str) -> Any:
+        """Enable standard dictionary indexed access via __getattr__ logic."""
+        return self.__getattr__(key)
+
+    def __contains__(self, key: str) -> bool:
+        """Check if a key exists in the underlying data."""
+        return key in self._data
+
+    def get(self, key: str, default: Optional[Any] = None) -> Any:
+        """Safely retrieve a value by key with a fallback default.
+
+        Args:
+            key (str): The key to look up.
+            default (Any, optional): Value to return if key is missing.
+
+        Returns:
+            The value or the default.
+        """
+        try:
+            return self.__getattr__(key)
+        except (AttributeError, KeyError):
+            return default
+
+    def keys(self) -> Iterable[str]:
+        """Return the keys of the underlying dictionary."""
+        return self._data.keys()
+
+    def values(self) -> Generator[Any, None, None]:
+        """Generate lazily-wrapped values for all keys."""
+        return (self.__getattr__(k) for k in self._data.keys())
+
+    def items(self) -> Generator[Tuple[str, Any], None, None]:
+        """Generate (key, wrapped_value) pairs."""
+        return ((k, self.__getattr__(k)) for k in self._data.keys())
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return the raw, unwrapped dictionary data."""
+        return self._data
+
+    def __repr__(self) -> str:
+        """Return a string representation showing the top-level keys."""
+        return f"LazyNodes({list(self._data.keys())})"
 
 
 class LazyAttrDict: # noqa: D301

@@ -7,6 +7,14 @@ The format is based on `Keep a Changelog <http://keepachangelog.com/>`_,
 and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 
 
+0.1.11 (2026-05-08)
+-------------------
+* Added: ``LazyNodes`` class to ``lib`` for high-performance, truly lazy data wrapping.
+* Added: New test suite using ``pytest`` with improved coverage and modularity.
+* Changed: Optimized package dependencies by removing redundant optional extras from ``pyproject.toml``.
+* Changed: Moved development and documentation dependencies to standalone ``requirements-dev.txt`` and ``requirements-docs.txt``.
+* Removed: Unused ``nbsphinx`` and ``ipython`` dependencies to streamline installation.
+
 0.1.10 (2026-05-06)
 -------------------
 * Fixed: Restored ``sphinx-github-alerts`` dependency to fix broken Read the Docs build.

@@ -214,7 +214,7 @@ def msal(tenant_id: str, client_id: str, client_email: str, client_secret: str, 
 
         from ntsm.conn import msal
         mail = msal(tenant_id="...", client_id="...", client_email="...", client_secret="...")
-        mail.send_email(to="test@example.com", subject="Hello", body="Test")
+        mail.send(to="test@example.com", subject="Hello", body="Test")
 
     Returns:
         An authenticated ``EmailMsal`` instance if successful, otherwise ``None``.
